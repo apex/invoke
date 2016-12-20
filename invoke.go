@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/pkg/errors"
 )
 
 // DefaultClient is the default Lambda client.
@@ -61,7 +62,7 @@ func Async(name string, in interface{}) error {
 func InvokeSync(client Lambda, name string, in, out interface{}) error {
 	b, err := json.Marshal(in)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "marshalling input")
 	}
 
 	res, err := client.Invoke(&lambda.InvokeInput{
@@ -71,7 +72,7 @@ func InvokeSync(client Lambda, name string, in, out interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "invoking function")
 	}
 
 	if res.FunctionError != nil {
@@ -80,20 +81,24 @@ func InvokeSync(client Lambda, name string, in, out interface{}) error {
 		}
 
 		if e := json.Unmarshal(res.Payload, &err); e != nil {
-			return e
+			return errors.Wrap(e, "unmarshalling error response")
 		}
 
 		return err
 	}
 
-	return json.Unmarshal(res.Payload, &out)
+	if err := json.Unmarshal(res.Payload, &out); err != nil {
+		return errors.Wrap(err, "unmarshalling response")
+	}
+
+	return nil
 }
 
 // InvokeAsync invokes function `name` asynchronously with the given `client`.
 func InvokeAsync(client Lambda, name string, in interface{}) error {
 	b, err := json.Marshal(in)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "marshalling input")
 	}
 
 	_, err = client.Invoke(&lambda.InvokeInput{
@@ -103,5 +108,9 @@ func InvokeAsync(client Lambda, name string, in interface{}) error {
 		Payload:        b,
 	})
 
-	return err
+	if err != nil {
+		return errors.Wrap(err, "invoking function")
+	}
+
+	return nil
 }

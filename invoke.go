@@ -21,7 +21,7 @@ import (
 var DefaultClient = lambda.New(session.New(aws.NewConfig()))
 
 // DefaultAlias is the alias for function invocations.
-var DefaultAlias = aws.String("current")
+var DefaultAlias = "current"
 
 // Lambda interface.
 type Lambda interface {
@@ -53,6 +53,11 @@ func Sync(name string, in, out interface{}) error {
 	return InvokeSync(DefaultClient, name, in, out)
 }
 
+// Sync invokes function `name` (version or alias specified by `qualifier`) synchronously with the default client.
+func SyncQualifier(name, qualifier string, in, out interface{}) error {
+	return InvokeSyncQualifier(DefaultClient, name, qualifier, in, out)
+}
+
 // Async invokes function `name` asynchronously with the default client.
 func Async(name string, in interface{}) error {
 	return InvokeAsync(DefaultClient, name, in)
@@ -60,6 +65,32 @@ func Async(name string, in interface{}) error {
 
 // InvokeSync invokes function `name` synchronously with the given `client`.
 func InvokeSync(client Lambda, name string, in, out interface{}) error {
+	return InvokeSyncQualifier(client, name, DefaultAlias, in, out)
+}
+
+// InvokeAsync invokes function `name` asynchronously with the given `client`.
+func InvokeAsync(client Lambda, name string, in interface{}) error {
+	b, err := json.Marshal(in)
+	if err != nil {
+		return errors.Wrap(err, "marshalling input")
+	}
+
+	_, err = client.Invoke(&lambda.InvokeInput{
+		FunctionName:   &name,
+		InvocationType: aws.String("Event"),
+		Qualifier:      &DefaultAlias,
+		Payload:        b,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "invoking function")
+	}
+
+	return nil
+}
+
+// InvokeSyncQualifier invokes function `name` (version or alias specified by `qualifier`) synchronously with the given `client`.
+func InvokeSyncQualifier(client Lambda, name, qualifier string, in, out interface{}) error {
 	b, err := json.Marshal(in)
 	if err != nil {
 		return errors.Wrap(err, "marshalling input")
@@ -67,7 +98,7 @@ func InvokeSync(client Lambda, name string, in, out interface{}) error {
 
 	res, err := client.Invoke(&lambda.InvokeInput{
 		FunctionName: &name,
-		Qualifier:    DefaultAlias,
+		Qualifier:    &qualifier,
 		Payload:      b,
 	})
 
@@ -89,27 +120,6 @@ func InvokeSync(client Lambda, name string, in, out interface{}) error {
 
 	if err := json.Unmarshal(res.Payload, &out); err != nil {
 		return errors.Wrap(err, "unmarshalling response")
-	}
-
-	return nil
-}
-
-// InvokeAsync invokes function `name` asynchronously with the given `client`.
-func InvokeAsync(client Lambda, name string, in interface{}) error {
-	b, err := json.Marshal(in)
-	if err != nil {
-		return errors.Wrap(err, "marshalling input")
-	}
-
-	_, err = client.Invoke(&lambda.InvokeInput{
-		FunctionName:   &name,
-		InvocationType: aws.String("Event"),
-		Qualifier:      DefaultAlias,
-		Payload:        b,
-	})
-
-	if err != nil {
-		return errors.Wrap(err, "invoking function")
 	}
 
 	return nil

@@ -106,7 +106,7 @@ func Async(name string, in interface{}) error {
 
 // AsyncQualifier invokes function `name` (version or alias specified by `qualifier`) asynchronously with the default client.
 func AsyncQualifier(name, qualifier string, in interface{}) error {
-	return InvokeAsyncQualifier(DefaultClient, name, DefaultAlias, in)
+	return InvokeAsyncQualifier(DefaultClient, name, qualifier, in)
 }
 
 // InvokeAsync invokes function `name` asynchronously with the given `client`.

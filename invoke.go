@@ -53,7 +53,7 @@ func Sync(name string, in, out interface{}) error {
 	return InvokeSync(DefaultClient, name, in, out)
 }
 
-// Sync invokes function `name` (version or alias specified by `qualifier`) synchronously with the default client.
+// SyncQualifier invokes function `name` (version or alias specified by `qualifier`) synchronously with the default client.
 func SyncQualifier(name, qualifier string, in, out interface{}) error {
 	return InvokeSyncQualifier(DefaultClient, name, qualifier, in, out)
 }
